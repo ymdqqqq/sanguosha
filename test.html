@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>baixing kill</title>
+</head>
+<body>
+<div>
+    <button onclick="useCard(0, 1)">Gao person 2</button>
+    <button onclick="useCard(0, 0)">Gao yourself</button>
+    <button onclick="useCardFinish()">qu xiao</button>
+    <button onclick="dropCard(0)">qi pai</button>
+    <span id="person0"></span>
+</div>
+<div>
+    <button onclick="useCard(0, 2)">Gao person 3</button>
+    <button onclick="useCard(0, 1)">Gao yourself</button>
+    <button onclick="useCardFinish()">qu xiao</button>
+    <button onclick="dropCard(0)">qi pai</button>
+    <span id="person1"></span>
+</div>
+<div>
+    <button onclick="useCard(0, 0)">Gao person 1</button>
+    <button onclick="useCard(0, 2)">Gao yourself</button>
+    <button onclick="useCardFinish()">qu xiao</button>
+    <button onclick="dropCard(0)">qi pai</button>
+    <span id="person2"></span>
+</div>
+
+<script>
+    var personArr = new Array();
+    var personnum = 3;
+    var turn = -1;   //谁的回合。
+    var ready = 0;  //该谁出牌。
+    var readyType = -1;
+    var damage = 1;
+
+
+
+    //牌堆相关操作
+    var totalCards = 30;
+    var cardNumber = new Array(15, 5, 5, 5); // 杀，闪，桃，酒
+    var cardTypes = cardNumber.length;
+
+    var cardList = null;
+    var cardPlace = null;
+
+
+
+
+
+
+
+
+    boardInit();
+
+
+    function boardInit() {
+        for (var i=0; i<personnum;i++) {
+            personArr[i] = new Person(i);
+            personArr[i].health = personArr[i].maxHealth;
+            personArr[i].getNewPai(4);
+        }
+        judgementStage();
+    }
+
+    function judgementStage() {
+        while (true) {
+            turn = (turn + 1) % personnum;
+            if (personArr[turn].alive ==true) break;
+        }
+        getCardStage();
+    }
+
+    function getCardStage() {
+        var newPai = personArr[turn].getNewPai(2);
+        alert('抓牌' + ', ' +  newPai);
+
+
+        var span = document.getElementById('person' + turn);
+        while( span.firstChild ) {
+            span.removeChild( span.firstChild );
+        }
+        span.appendChild( document.createTextNode(personArr[turn].pai));
+
+
+        useCardStage();
+    }
+
+    function useCardStage() {
+        ready = turn;
+        readyType = -1;
+        alert('出牌' + ', ' + ready);
+    }
+
+    function dropCardStage() {
+        damage = 1;
+        var dropNum = personArr[turn].pai.length - personArr[turn].health;
+        if (dropNum > 0) {
+            alert('弃牌' + ', ' + turn + ', ' + dropNum);
+        } else {
+            judgementStage();
+        }
+    }
+
+    //action
+    function dropCard(cardNum) {
+        personArr[turn].chupai(cardNum);
+        dropCardStage();
+    }
+
+    function useCardFinish() {
+        switch (readyType) {
+            case -1:
+                dropCardStage();
+                break;
+            case 0:
+                personArr[ready].diaoxue(damage);
+                damage = 1;
+                ready = turn;
+                readyType = -1;
+                alert('出牌' + ', ' + ready);
+                break;
+        }
+    }
+
+    function useCard(cardNum, to) {
+        var person = personArr[ready];
+        var cardType = person.pai[cardNum];
+        var toPerson = personArr[to];
+        if (toPerson.alive == false) {
+            alert('CARD_USE_ERROR' + ', ' +  '此人已死，有事烧纸！');
+            return;
+        }
+        switch (cardType) {
+            case 0:
+                if (readyType != -1) {
+                    alert('CARD_USE_ERROR' + ', ' +  '你不能出这张牌，哇哈哈！');
+                    break;
+                }
+                person.chupai(cardNum);
+                ready = to;
+                readyType = 0;
+                alert('出牌' + ', ' + ready);
+                break;
+            case 1:
+                if (readyType != 0) {
+                    alert('CARD_USE_ERROR' + ', ' +  '你不能出这张牌，哇哈哈！')
+                    break;
+                }
+                person.chupai(cardNum);
+                ready = turn;
+                readyType = -1;
+                damage = 1;
+                alert('出牌' + ', ' + ready);
+                break;
+            case 2:
+                if (readyType != -1 || toPerson.health == toPerson.maxHealth) {
+                    alert('CARD_USE_ERROR' + ', ' +  '你不能出这张牌，哇哈哈！')
+                    break;
+                }
+                person.chupai(cardNum);
+                toPerson.huixue();
+                ready = turn;
+                readyType = -1;
+                alert('出牌' + ', ' + ready);
+                break;
+            case 3:
+                if (readyType != -1) {
+                    alert('CARD_USE_ERROR' + ', ' +  '你不能出这张牌，哇哈哈！')
+                    break;
+                }
+                person.chupai(cardNum);
+                damage = 2;
+                alert('出牌' + ', ' + ready);
+                break;
+        }
+    }
+
+    function Person(id) {
+        this.id = id;
+        this.alive = true;
+        this.health = 0;
+        this.maxHealth = 4;
+        this.pai = new Array()
+        this.huixue = function() {
+            this.health++;
+        };
+
+        this.diaoxue = function (damage) {
+            this.health -= damage;
+            if (this.health <= 0) {
+                alert('死了，哈哈！' + ', ' + this.id);
+                this.alive = false;
+            }
+        }
+
+        this.chupai = function(num){
+            this.pai.splice(num, 1);
+        };
+
+        this.getNewPai = function(num) {
+            var oldNum = this.pai.length;
+            var newPai = '';
+            for (var i = oldNum;i<oldNum + num;i++) {
+                this.pai[i] = getNextCard();
+                newPai += this.pai[i] + ' ';
+            }
+            return newPai;
+        }
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    function nextRandom(n) {
+        return Math.floor(Math.random() * (n));
+    }
+
+    function init() {
+        var cardLeft = new Array();
+        for (i = 0; i < cardTypes; i ++) {
+            cardLeft[i] = cardNumber[i];
+        }
+
+        cardList = new Array();
+        cardPlace = 0;
+        for (var i = 0; i < totalCards; i ++) {
+            nextCard = nextRandom(cardTypes);
+            while (cardLeft[nextCard] == 0) nextCard = nextRandom(cardTypes);
+            cardLeft[nextCard] --;
+            cardList[i] = nextCard;
+        }
+        alert(cardList);
+    }
+
+    function getNextCard() {
+        if (cardPlace == null || cardPlace >= totalCards) init();
+        return cardList[cardPlace ++];
+    }
+
+
+</script>
+</body>
+</html>
